@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    function sendMessage() {
+      const form = document.getElementById('chat-form');
+      const formData = new FormData(form);
+      fetch('/send', {
+        method: 'POST',
+        body: formData
+      }).then(() => {
+        form.reset();
+        receiveMessages();
+      });
+    }
+
+    function sendImage() {
+      const form = document.getElementById('image-form');
+      const formData = new FormData(form);
+      fetch('/send-image', {
+        method: 'POST',
+        body: formData
+      }).then(() => {
+        form.reset();
+        document.getElementById('preview').innerHTML = '';
+        receiveMessages();
+      });
+    }
+
+    function previewFile() {
+      const fileInput = document.getElementById('file');
+      const preview = document.getElementById('preview');
+      preview.innerHTML = '';
+
+      if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+        if (file.type.startsWith('image/')) {
+          reader.onload = function (e) {
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            img.className = "max-w-[150px] mt-2 rounded shadow";
+            preview.appendChild(img);
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    }
+
+    function receiveMessages() {
+      fetch('/receive?user={{ user }}')
+        .then(res => res.json())
+        .then(data => {
+          const box = document.getElementById('msgs');
+          data.messages.forEach(msg => {
+            let html = '';
+            if (msg.type === 'image') {
+              html = '<img src="/static/' + msg.content + '" class="max-w-xs mb-2 rounded shadow"/>';
+            } else {
+              html = '<div class="mb-2 px-3 py-2 bg-blue-100 rounded w-fit max-w-xs">' + msg.content + '</div>';
+            }
+            box.innerHTML += html;
+          });
+          box.scrollTop = box.scrollHeight;
+        });
+    }
+
+    setInterval(receiveMessages, 3000);
+  </script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+  <div class="w-full max-w-xl bg-white rounded-xl shadow-lg p-6 space-y-4">
+    <h2 class="text-xl font-bold text-gray-800 text-center">Welcome, {{ user }}</h2>
+
+    <div id="msgs" class="border h-64 overflow-y-auto p-3 rounded bg-gray-50 text-sm"></div>
+
+    <!-- Text Form -->
+    <form id="chat-form" class="flex items-center gap-2" onsubmit="event.preventDefault(); sendMessage();">
+      <input type="hidden" name="sender" value="{{ user }}">
+      <input type="hidden" name="receiver" value="{{ 'user1' if user=='user2' else 'user2' }}">
+      <input name="message" required placeholder="Type a message..." 
+             class="flex-1 px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      <button type="submit" 
+              class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition duration-200">
+        Send
+      </button>
+    </form>
+
+    <!-- Image Upload Form -->
+    <form id="image-form" class="space-y-2" onsubmit="event.preventDefault(); sendImage();" enctype="multipart/form-data">
+      <input type="hidden" name="sender" value="{{ user }}">
+      <input type="hidden" name="receiver" value="{{ 'user1' if user=='user2' else 'user2' }}">
+      <input type="file" name="file" id="file" accept="image/*" onchange="previewFile()" 
+             class="w-full border rounded p-2" required/>
+      <div id="preview"></div>
+      <button type="submit" 
+              class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition">
+        Send Image
+      </button>
+    </form>
+  </div>
+</body>
+</html>
