@@ -1,0 +1,7 @@
+[project]
+name = "infosec"
+version = "0.1.0"
+description = "This is a python project for infosec lab"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
